@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Location Search Sample</title>
+    <script type="text/javascript" src="//www.google.com/jsapi"></script>
+    <script type="text/javascript" src="<$MTStaticWebPath$>data-api/v1/js/mt-data-api.min.js"></script>
+  </head>
+  <body>
+    <form onsubmit="doSearch(document.getElementById('query').value); return false;" method="post">
+        Location or Address: <input type="search" name="query" id="query"><input type="submit" value="Search">
+    </form>
+    <div id="map_canvas" style="height: 600px;"></div>
+    <script>
+        var map;
+        var markers;
+        google.load("maps", "3.x", {
+            "other_params" : "sensor=false",
+            "callback" : function (){
+                var latlng = new google.maps.LatLng(35.7101389, 139.8108333);
+                var mapOptions = {
+                    zoom: 15,
+                    center: latlng,
+                    mapTypeId: google.maps.MapTypeId.ROADMAP,
+                    mapTypeControl: true,
+                    mapTypeControlOptions: {
+                        mapTypeIds: [
+                            google.maps.MapTypeId.ROADMAP,
+                            google.maps.MapTypeId.SATELLITE,
+                            google.maps.MapTypeId.HYBRID,
+                            google.maps.MapTypeId.TERRAIN
+                        ]
+                    },
+                    enableContinuousZoom: true,
+                    enableDoubleClickZoom: true
+                };
+                map = new google.maps.Map(document.getElementById('map_canvas'), mapOptions);
+                markers = new google.maps.MVCArray();
+                google.maps.event.addListener(map, 'dragend', function () {
+                    drawEntries();
+                });
+                drawEntries();
+            }
+        });
+        
+        function doSearch(query) {
+            var geocoder = new google.maps.Geocoder();
+            var obj = this;
+            geocoder.geocode({ address: query }, function(results, status) {
+                if (status == google.maps.GeocoderStatus.OK && results[0]) {
+                    map.panTo(results[0].geometry.location);
+                    drawEntries();
+                } else {
+                    window.alert("not found");
+                }
+            });
+        }
+        
+        var api = new MT.DataAPI({
+            baseUrl:  "<$MTCGIPath$>mt-data-api.cgi",
+            clientId: 'example'
+        });
+        function drawEntries() {
+            var position = map.getCenter();
+            var params = {
+                lat: position.lat(),
+                lng: position.lng(),
+                distance: 1.0,
+                limit: 100
+            };
+            api.listEntries(<$MTBlogID$>, params, function(response){
+                if (response.error) {
+                    return;
+                }
+                clearEntries();
+                var items = response.items;
+                for (var i=0; i<items.length; i++) {
+                    (function(item){
+                        var latlng = new google.maps.LatLng(item.lat, item.lng);
+                        var marker = new google.maps.Marker({
+                            position: latlng,
+                            map: map,
+                            title: item.title
+                        });
+                        google.maps.event.addListener(marker, 'click', function () {
+                            window.open(item.permalink);
+                        });
+                        markers.push(marker);
+                    })(items[i]);
+                }
+            });
+        }
+        
+        function clearEntries() {
+            markers.forEach(function (marker, idx) { marker.setMap(null); });
+        }
+    </script>
+  </body>
+</html>

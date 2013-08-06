@@ -73,6 +73,12 @@ Data APIから返却される記事リソースに以下のプロパティが追
         <a href=http://maps.google.co.jp/maps?ie=UTF8&q=<$MTEntryLat$>,<$MTEntryLng$>&ll=<$MTEntryLat$>,<$MTEntryLng$>&z=15";>GoogleMap</a>
     </mt:EntryIfPositioned>
 
+## サンプル
+
+Google Map + Data API + Location のサンプルを sample.tmpl として用意しています。
+
+コピペして適当なインデックステンプレートを作成すれば、地図検索を試せます。
+
 ## TODO
 
 できればやりたいこと。（無理っぽいことも含まれる）
@@ -80,6 +86,7 @@ Data APIから返却される記事リソースに以下のプロパティが追
 * 検索
   * 指定地点からの距離を取得
   * 指定地点からの近い順でソート
+  * 指定領域内の記事を検索
 * テンプレートタグ
   * 測地系変換モディファイア
   * 度分秒表記モディファイア
