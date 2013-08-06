@@ -1,0 +1,49 @@
+id: location
+key: location
+name: Location
+version: 0.0.1
+author_name: Yuichi Takeuchi
+author_link: http://takeyu-web.com/
+description: <__trans phrase="_PLUGIN_DESCRIPTION">
+schema_version: 0.001
+l10n_class: Location::L10N
+
+object_types:
+    entry:
+        use_location: integer default 0
+        lat: float indexed
+        lng: float indexed
+
+applications:
+    data_api:
+        resources:
+            entry:
+                fields:
+                    - name: useLocation
+                      alias: use_location
+                      from_object_default: 0
+                      type: MT::DataAPI::Resource::DataType::Boolean
+                    - name: lat
+                    - name: lng
+                updatable_fields:
+                    - useLocation
+                    - lat
+                    - lng
+
+list_properties:
+    entry:
+        use_location:
+            label: Location
+            html: $location::Location::Listing::_use_location
+
+callbacks:
+    template_source.edit_entry: $location::Location::Callbacks::_cb_ts_edit_entry
+    template_param.edit_entry: $location::Location::Callbacks::_cb_tp_edit_entry
+    data_api_pre_load_filtered_list.entry: $location::Location::Callbacks::_cb_data_api_pre_load_filtered_list_entry
+
+tags:
+    block:
+        EntryIfPositioned?: $location::Location::Tags::_hdlr_entry_if_potisioned
+    function:
+        EntryLat: $location::Location::Tags::_hdlr_entry_lat
+        EntryLng: $location::Location::Tags::_hdlr_entry_lng
