@@ -161,13 +161,28 @@ sub _cb_data_api_pre_load_filtered_list_entry {
     
     my $ds = $filter->object_ds;
     my $terms = $ref_options->{ terms };
-    my $args = $ref_options->{ args };
     my @ids = _fetch_ids( $app, $ds, $lat, $lng, $distance );
-    if ( @ids ) {
-        push @$terms, [ '-and', [ map{ ({ id => $_ }, '-or') } @ids ] ];
+    
+    if ( ref( $terms ) eq 'ARRAY' ) {
+        if ( @ids ) {
+            push @$terms, [ '-and', [ map{ ({ id => $_ }, '-or') } @ids ] ];
+        } else {
+            push @$terms, [ '-and', [ { id => -1 } ] ];
+        }
+    } elsif ( ref( $terms ) eq 'HASH' ) {
+        if ( @ids ) {
+            $terms = { %$terms, ( id => \@ids ) };
+        } else {
+            $terms = { %$terms, ( id => -1 ) };
+        }
     } else {
-        push @$terms, [ '-and', [ { id => -1 } ] ];
+        if ( @ids ) {
+            $terms = { id => \@ids };
+        } else {
+            $terms = { id => -1 };
+        }
     }
+    $ref_options->{ terms } = $terms;
     1;
 }
 
