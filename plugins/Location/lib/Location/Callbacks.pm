@@ -157,39 +157,67 @@ sub _cb_data_api_pre_load_filtered_list_entry {
     my $lat = $q->param( 'lat' );
     my $lng = $q->param( 'lng' );
     my $distance = $q->param( 'distance' ) || 1.0;
-    return 1 unless ( defined( $lat ) && $lat ne '' && defined( $lng ) && $lng ne '' );
+    my $sw_lat = $q->param( 'sw_lat' );
+    my $sw_lng = $q->param( 'sw_lng' );
+    my $ne_lat = $q->param( 'ne_lat' );
+    my $ne_lng = $q->param( 'ne_lng' );
+    my $latlng_present = defined( $lat ) && $lat ne '' && defined( $lng ) && $lng ne '';
+    my $swne_present = defined( $sw_lat ) && $sw_lat ne '' && defined( $sw_lng ) && $sw_lng ne '' &&
+        defined( $ne_lat ) && $ne_lat ne '' && defined( $ne_lng ) && $ne_lng ne '';
+    return 1 unless $latlng_present || $swne_present;
     
     my $ds = $filter->object_ds;
     my $terms = $ref_options->{ terms };
-    my @ids = _fetch_ids( $app, $ds, $lat, $lng, $distance );
-    
-    if ( ref( $terms ) eq 'ARRAY' ) {
-        if ( @ids ) {
-            push @$terms, [ '-and', [ map{ ({ id => $_ }, '-or') } @ids ] ];
+    my $args = $ref_options->{ args };
+    my $term;
+    if ( $swne_present ) {
+        if ( ref( $terms ) eq 'ARRAY' ) {
+            push @$terms, [ '-and', [ { lat => [ $sw_lat, $ne_lat ], lng => [ $sw_lng, $ne_lng ] } ] ];
+        } elsif ( ref( $terms ) eq 'HASH' ) {
+            $terms = { %$terms, ( lat => [ $sw_lat, $ne_lat ], lng => [ $sw_lng, $ne_lng ] ) };
         } else {
-            push @$terms, [ '-and', [ { id => -1 } ] ];
+            $terms = { lat => [ $sw_lat, $ne_lat ], lng => [ $sw_lng, $ne_lng ] };
         }
-    } elsif ( ref( $terms ) eq 'HASH' ) {
-        if ( @ids ) {
-            $terms = { %$terms, ( id => \@ids ) };
+        if ( ref( $args ) eq 'HASH' ) {
+            if ( ref( $args->{ range } ) eq 'HASH' ) {
+                $args->{ range }->{ lat } = 1;
+                $args->{ range }->{ lng } = 1;
+            } else {
+                $args->{ range } = { lat => 1, lng => 1 };
+            }
         } else {
-            $terms = { %$terms, ( id => -1 ) };
+            $args = { range => { lat => 1, lng => 1 } };
         }
     } else {
-        if ( @ids ) {
-            $terms = { id => \@ids };
+        my @ids = _fetch_ids( $app, $ds, $lat, $lng, $distance );
+        if ( ref( $terms ) eq 'ARRAY' ) {
+            if ( @ids ) {
+                push @$terms, [ '-and', [ map{ ({ id => $_ }, '-or') } @ids ] ];
+            } else {
+                push @$terms, [ '-and', [ { id => -1 } ] ];
+            }
+        } elsif ( ref( $terms ) eq 'HASH' ) {
+            if ( @ids ) {
+                $terms = { %$terms, ( id => \@ids ) };
+            } else {
+                $terms = { %$terms, ( id => -1 ) };
+            }
         } else {
-            $terms = { id => -1 };
+            if ( @ids ) {
+                $terms = { id => \@ids };
+            } else {
+                $terms = { id => -1 };
+            }
         }
     }
     $ref_options->{ terms } = $terms;
+    $ref_options->{ args } = $args;
     1;
 }
 
 
 sub _fetch_ids {
     my ( $app, $ds, $lat, $lng, $distance ) = @_;
-    my $q = $app->param;
     my $class = MT->model( $ds );
     my $blog_id   = $app->blog ? $app->blog->id : 0;
     my $id_column = 'id';
