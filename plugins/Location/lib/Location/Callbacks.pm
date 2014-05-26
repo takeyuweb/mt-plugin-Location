@@ -119,7 +119,6 @@ sub _cb_tp_edit_entry {
     my ( $cb, $app, $param, $tmpl ) = @_;
     my $q = $app->param;
     return 1 unless $q->param( '_type' ) eq 'entry';
-    
     my $html = <<"HTML";
 <__trans_section component="Location">
     <mt:if name="use_location">
